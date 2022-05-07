@@ -13,6 +13,27 @@ int main()
   if (!vulkan_library)
     std::cout << "Could not connect with Vulkan library." << std::endl;
 
+
+  #define INSTANCE_LEVEL_VULKAN_FUNCTION( name )                          \
+    name = (PFN_##name)vkGetInstanceProcAddr( instance, #name );          \
+    if( name == nullptr ) {                                               \
+      std::cout << "Could not load instance-level Vulkan function named: "\
+      #name << std::endl;                                                 \
+      return 1;                                                           \
+    }
+
+  #define INSTANCE_LEVEL_VULKAN_FUNCTION_FROM_EXTENSION( name, extension )     \
+    for( auto & enabled_extension : enabled_extensions ) {                     \
+      if( std::string( enabled_extension ) == std::string( extension ) ) {     \
+        name = (PFN_##name)vkGetInstanceProcAddr( instance, #name );           \
+        if( name == nullptr ) {                                                \
+          std::cout << "Could not load instance-level Vulkan function named: " \
+          #name << std::endl;                                                  \
+          return false;                                                        \
+        }                                                                      \
+      }                                                                        \
+    }
+
   #include "ListOfVulkanFunctions.inl"
   PFN_vkEnumerateInstanceExtensionProperties vkEnumerateInstanceExtensionProperties;
   PFN_vkEnumerateInstanceLayerProperties vkEnumerateInstanceLayerProperties;
@@ -72,6 +93,48 @@ int main()
 
   VkInstance vkInstance;
   CHK_VK_SUCCESS(vkCreateInstance(&vkInstanceCreateInfo, nullptr, &vkInstance));
+
+  //
+  //Loading instance-level functions
+  //
+
+
+  //
+  //  Enumerate availale physical devices
+  //
+
+  uint32_t nNbDevices = 0;
+  CHK_VK_SUCCESS(vkEnumeratePhysicalDevices(vkInstance, &nNbDevices, nullptr));
+
+  std::vector<VkPhysicalDevice> vAvailableDevices(nNbDevices);
+  CHK_VK_SUCCESS(vkEnumeratePhysicalDevices(vkInstance, &nNbDevices, vAvailableDevices.data()));
+  std::cout << nNbDevices << ": Available devices." << std::endl;
+
+  if (!nNbDevices)  return 1;
+
+  //
+  //  Checking available device extensions
+  //
+
+  VkPhysicalDevice vkPhysicalDevice = vAvailableDevices[0];
+  uint32_t nNbDeviceExtensions = 0;
+  CHK_VK_SUCCESS(vkEnumerateDeviceExtensionProperties(vkPhysicalDevice, nullptr, &nNbDeviceExtensions, nullptr));
+
+  std::vector<VkExtensionProperties> vExtensionProperties(nNbDeviceExtensions);
+  CHK_VK_SUCCESS(vkEnumerateDeviceExtensionProperties(vkPhysicalDevice, nullptr, &nNbDeviceExtensions, vExtensionProperties.data()));
+
+  //
+  //  Getting features and properties of a physical device
+  //
+
+  VkPhysicalDeviceFeatures vkDeviceFeatures;
+  VkPhysicalDeviceProperties vkDeviceProperties;
+
+  vkGetPhysicalDeviceFeatures(vkPhysicalDevice, &vkDeviceFeatures);
+  vkGetPhysicalDeviceProperties(vkPhysicalDevice, &vkDeviceProperties);
+
+  std::cout << "Device Name: " << vkDeviceProperties.deviceName << std::endl;
+  std::cout << "Device Type: " << vkDeviceProperties.deviceType << std::endl;
 
   std::cout << "Program ended successfully !" << std::endl;
 
