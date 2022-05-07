@@ -2,6 +2,8 @@
 #include <dlfcn.h>
 
 #include "VulkanFunctions.h"
+#include "my_asserts.hh"
+
 
 int main()
 {
@@ -17,7 +19,13 @@ int main()
 
   vkEnumerateInstanceExtensionProperties =  (PFN_vkEnumerateInstanceExtensionProperties) vkGetInstanceProcAddr(nullptr, "vkEnumerateInstanceExtensionProperties");
   vkEnumerateInstanceLayerProperties = (PFN_vkEnumerateInstanceLayerProperties) vkGetInstanceProcAddr(nullptr, "vkEnumerateInstanceLayerProperties");
-  vkCreateInstance = (PFN_vkCreateInstance) vkGetInstanceProcAddr(nullptr, "vkCreateInsance");
+  vkCreateInstance = (PFN_vkCreateInstance) vkGetInstanceProcAddr(nullptr, "vkCreateInstance");
+
+  CHK_ELSE_RET(vkEnumerateDeviceExtensionProperties);
+  CHK_ELSE_RET(vkEnumerateInstanceExtensionProperties);
+  CHK_ELSE_RET(vkCreateInstance);
+
+  std::cout << "Program ended successfully !" << std::endl;
 
   return 0;
 }
